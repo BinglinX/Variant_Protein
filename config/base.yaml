@@ -1,0 +1,62 @@
+general:
+  seed: 2023
+  gpu_id: 0 # 0 or [0,1]
+  devices: 1 # 1 or 2 or 3
+  usage: train # train, infer
+  save_path_log: ./result/logging.log
+  save_path_predictions: ./predictions_results.csv
+  save_num: 0 #suffix for saving on wandb and saving model
+  save_name: null #suffix for saving prediction
+
+model:
+  batch_size: 128 # batch_size for model training
+  num_features: 1024 #num_input, dimension of embedding per residue
+  num_hidden: 256 #output shape of the first linear layer
+  num_output: 256 #output shape of the second linear layer
+  ac_fn_hidden: relu # relu or leaky_relu or silu or gelu, activation function of the first linear layer
+  ac_fn_predict: relu # relu or leaky_relu or silu or gelu, activation function of the second linear layer
+  dropout_hidden: 0.4 #dropout rate of the first linear layer
+  dropout_predict: 0.4 #dropout rate of the first linear layer 
+  loss_fn: MSEloss
+  optimizer: adamw # adamw, adam
+  grad_accum_steps: 1  
+  weight_decay: 0
+  lr: 1e-4
+  early_stop: 25
+  n_epochs: 2000
+  model_save_path: ./result/model
+  model_save_filename: ${model.model_choice}_${general.save_num}
+  debug: true
+
+dataset:
+  load_data:
+    ds_path: ../data
+    lmdb_path: ../data/
+    batch_size: ${model.batch_size}
+    train_sub_list: train_variant.csv
+    valid_sub_list: valid_variant.csv
+    test_sub_list: test_variant.csv
+    target_sub_list: test_variant.csv
+    wt_emb: wt_emb_dict.pt
+    lmdb_path: ../data/lmdb
+    batch size: ${model.batch size}
+    max_tensor_length: 6500 #max tensor length for padding
+
+wandb:
+  project: Variant_Protein
+  run_id: null
+  run_name: ${model.model_choice}_${general.save_num}
+
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+hydra:
+  run:
+    dir: "."
+  output_subdir: null
+  job_logging:
+    root:
+      handlers: null
+      disabled: true
