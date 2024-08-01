@@ -31,7 +31,6 @@ model:
 dataset:
   load_data:
     ds_path: ../data
-    lmdb_path: ../data/
     batch_size: ${model.batch_size}
     train_sub_list: train_variant.csv
     valid_sub_list: valid_variant.csv
