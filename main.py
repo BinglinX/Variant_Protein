@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from src.model import *
 from src.model_module import TrainingModule
 from src.dataset_module import ProteinVariant_DataModule
-
+import pandas as pd
 import hydra
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import OmegaConf
@@ -156,15 +156,15 @@ class ModelTrainer(object):
         trained_model = TrainingModule.load_from_checkpoint(checkpoint_path=self.model_checkpoint, model=self.model_object, cfg=self.cfg.model)
         predictions = self.trainer.predict(model=trained_model, datamodule=self.data_module)
 
-
         #prepares prediction and its index
-        keys = self.data_module.target_key_list #the target_key_list has been made an attribute for accessing
+        keys = self.data_module.predict_dataset.key_list
         output = torch.cat([item['pred'] for item in predictions], dim= 0)
 
-        #zip the index and the output together
-        pred = list(zip(keys,output))
+        #saves the index and the prediction in a dataframe
+        pred = pd.DataFrame({'mut_name': keys,
+                             'prediction': output.detach().cpu().numpy()})
 
-        torch.save(pred, f"{self.cfg.general.save_path_predictions}/{self.cfg.general.save_name}.pt")
+        pred.to_csv(f"{self.cfg.general.save_path_predictions}/{self.cfg.general.save_name}.csv",index=False)
         logging.info(f"Prediction results saved at {self.cfg.general.save_path_predictions}")
 
 def run_metrics(output,label):
@@ -174,15 +174,15 @@ def run_metrics(output,label):
     '''
     
     #convert the prediction and labels to numpy arrays and flatten them for statistical tests
-    output_np = output.numpy().flatten()
-    label_np = label.numpy().flatten()
+    output_np = output.detach().cpu().numpy().flatten()
+    label_np = label.detach().cpu().numpy().flatten()
 
     #pearsonr and spearmanr produces a Result object, with attributes "statistic" and "pvalue"
     pearson = pearsonr(output_np,label_np).statistic 
     spearman = spearmanr(output_np,label_np).statistic 
 
     #lingress gives an r value, which should be squared to give the r squared value
-    r_squared = (linregress(output_np,label_np).rvalue)^2
+    r_squared = (linregress(output_np,label_np).rvalue)**2
 
 
     logging.info(f"Spearman correlation: {spearman} Pearson correlation: {pearson},r_squared: {r_squared}")
@@ -201,6 +201,9 @@ def main(cfg: HydraConfig) -> None:
 
     elif cfg.general.usage == 'infer':
         model_trainer.predict()
+
+
+    logging.info("Program is Completed")
 
 
 if __name__ == "__main__":

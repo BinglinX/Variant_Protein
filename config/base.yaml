@@ -2,22 +2,23 @@ general:
   seed: 2023
   gpu_id: 0 # 0 or [0,1]
   devices: 1 # 1 or 2 or 3
-  usage: train # train, infer
+  usage: infer # train, infer
   save_path_log: ./result/logging.log
-  save_path_predictions: ./predictions_results.csv
+  save_path_predictions: ./result
   save_num: 0 #suffix for saving on wandb and saving model
   save_name: null #suffix for saving prediction
 
 model:
+  model_choice: mlp
   batch_size: 128 # batch_size for model training
-  num_features: 1024 #num_input, dimension of embedding per residue
+  num_feature: 1024 #num_input, dimension of embedding per residue
   num_hidden: 256 #output shape of the first linear layer
   num_output: 256 #output shape of the second linear layer
   ac_fn_hidden: relu # relu or leaky_relu or silu or gelu, activation function of the first linear layer
   ac_fn_predict: relu # relu or leaky_relu or silu or gelu, activation function of the second linear layer
   dropout_hidden: 0.4 #dropout rate of the first linear layer
   dropout_predict: 0.4 #dropout rate of the first linear layer 
-  loss_fn: MSEloss
+  loss_fn: MSELoss
   optimizer: adamw # adamw, adam
   grad_accum_steps: 1  
   weight_decay: 0
@@ -30,15 +31,14 @@ model:
 
 dataset:
   load_data:
-    ds_path: ../data
+    ds_path: ./data
     batch_size: ${model.batch_size}
-    train_sub_list: train_variant.csv
-    valid_sub_list: valid_variant.csv
-    test_sub_list: test_variant.csv
-    target_sub_list: test_variant.csv
-    wt_emb: wt_emb_dict.pt
-    lmdb_path: ../data/lmdb
-    batch size: ${model.batch size}
+    train_sub_list: ${dataset.load_data.ds_path}/train_variant.csv
+    valid_sub_list: ${dataset.load_data.ds_path}/valid_variant.csv
+    test_sub_list: ${dataset.load_data.ds_path}/test_variant.csv
+    target_sub_list: ${dataset.load_data.ds_path}/test_variant.csv
+    wt_emb: ${dataset.load_data.ds_path}/wt_emb_dict.pt
+    lmdb_path: ${dataset.load_data.ds_path}/lmdb
     max_tensor_length: 6500 #max tensor length for padding
 
 wandb:

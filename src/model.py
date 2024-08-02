@@ -101,13 +101,13 @@ class CustomMLP(nn.Module):
         #concatenation: (batch_size, num_hidden) -> (batch_size, num_hidden*2)
         x = torch.cat([wt,mt],dim=1) #concat along the num_hidden dimension
 
-        #second linear layer: (batch_size, num_hidden*2) -> (batch size, num_output)
+        #second linear layer: (batch_size, num_hidden*2) -> (batch_size, num_output)
         x = self.predict(x)
 
-        #final fully connected layer: (batch size, num_output) -> (batch size, 1)
+        #final fully connected layer: (batch size, num_output) -> (batch_size, 1)
         x = self.fc(x)
 
-        return x
+        return x.squeeze(1) #squeezes x to batch_size so that its shape matches the label
 
 
 

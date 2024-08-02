@@ -31,9 +31,8 @@ class ProteinVariant_DataModule(pl.LightningDataModule):
 
             train_key_list = train_csv.loc[:,"mut_name"]
             valid_key_list = valid_csv.loc[:,"mut_name"]
-            train_label_list = train_csv.loc[:,"DMS_score"]
-            valid_label_list = valid_csv.loc[:,"DMS_score"]
-            
+            train_label_list = torch.tensor(train_csv.loc[:,"DMS_score"].values, dtype=torch.float32)
+            valid_label_list = torch.tensor(valid_csv.loc[:,"DMS_score"].values, dtype=torch.float32)            
 
             self.train_dataset = ProteinVariant_Dataset(key_list=train_key_list,label_list=train_label_list,
                                                         wt_emb_dict=wt_emb_dict,cfg=self.cfg)
@@ -43,7 +42,8 @@ class ProteinVariant_DataModule(pl.LightningDataModule):
         if stage == "test" or stage is None:
             test_csv = pd.read_csv(self.cfg.test_sub_list)
             test_key_list = test_csv.loc[:,"mut_name"]
-            test_label_list = test_csv.loc[:,"DMS_score"]
+            test_label_list = torch.tensor(test_csv.loc[:,"DMS_score"].values, dtype=torch.float32)
+
 
             self.test_dataset = ProteinVariant_Dataset(key_list=test_key_list,label_list=test_label_list,
                                                         wt_emb_dict=wt_emb_dict,cfg=self.cfg)
@@ -51,13 +51,12 @@ class ProteinVariant_DataModule(pl.LightningDataModule):
         if stage == "predict" or stage is None:
             target_csv = pd.read_csv(self.cfg.target_sub_list)
             target_key_list = target_csv.loc[:,"mut_name"] 
-            target_label_list = pd.Series([0] * len(self.target_key_list)) #creates a placeholder
+            target_label_list = torch.zeros((len(target_key_list),), dtype=torch.float32) #placeholder with no meaning
 
             self.predict_dataset = ProteinVariant_Dataset(key_list=target_key_list,label_list=target_label_list,
                                                         wt_emb_dict=wt_emb_dict,cfg=self.cfg)
             
-            self.target_key_list = target_key_list #makes the target_key_list an attribute to access it outside
-            
+
 
     def train_dataloader(self):
         return DataLoader(
@@ -76,5 +75,5 @@ class ProteinVariant_DataModule(pl.LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(
-            self.test_dataset, batch_size=self.cfg.batch_size, shuffle=False, num_workers=10,
+            self.predict_dataset, batch_size=self.cfg.batch_size, shuffle=False, num_workers=10,
             persistent_workers=True)

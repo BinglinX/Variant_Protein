@@ -14,11 +14,6 @@ class TrainingModule(pl.LightningModule):
         self.model = model
         self.cfg = cfg
 
-        #define a metrics dictionary and a loss list for calculation of average in on_valid_epoch_end
-        self.val_step_metrics = {"spearman":[],"pearson":[],"r_squared":[]}
-        self.val_step_losses = []
-
-
         self.test_step_output = {'pred': [], "label": []}
         self.predict_step_output = {'pred': [], "label": []}
 
@@ -55,6 +50,10 @@ class TrainingModule(pl.LightningModule):
         The validation step calculates the loss and the scores, saves the loss and scores,
         and returns the loss for early stop monitoring
         '''
+        
+        #define a metrics dictionary and a loss list for calculation of average in on_valid_epoch_end
+        self.val_step_metrics = {"spearman":[],"pearson":[],"r_squared":[]}
+        self.val_step_losses = []
 
         input,label = batch
         output = self.model(input) #model takes the dictionary as input and returns a single value
@@ -95,7 +94,6 @@ class TrainingModule(pl.LightningModule):
         output = self.model(input)
 
         self.predict_step_output['pred'].append(output)
-        self.predict_step_output['label'].append(label)   
 
         return {"pred": output}
 
@@ -111,6 +109,7 @@ class TrainingModule(pl.LightningModule):
         for key in self.val_step_metrics.keys():
             metrics = self.val_step_metrics[key] #each entry of the dictionary is a list of metrics
             val_epoch_avg_metrics[key] = sum(metrics)/len(metrics)
+
         
         #calculates the average of losses over the epoch and stores it
         val_epoch_avg_loss = sum(self.val_step_losses)/len(self.val_step_losses)
@@ -155,7 +154,7 @@ class TrainingModule(pl.LightningModule):
         used in training and validation
         '''
 
-        loss_fn_dict = {"MSEloss":nn.MSEloss(reduction='mean')}
+        loss_fn_dict = {"MSELoss":nn.MSELoss(reduction='mean')}
         loss_fn = loss_fn_dict[self.cfg.loss_fn]
         return loss_fn(output,label)
     
@@ -164,18 +163,17 @@ class TrainingModule(pl.LightningModule):
         calculates metrics including spearman, pearson and r_squared and returns as a dictionary
         used in validation and test
         '''
-        
+
         #convert the prediction and labels to numpy arrays and flatten them for statistical tests
-        output_np = output.numpy().flatten()
-        label_np = label.numpy().flatten()
+        output_np = output.detach().cpu().numpy().flatten() #tensors need to be on the cpu to be converted to numpy
+        label_np = label.detach().cpu().numpy().flatten()
 
         #pearsonr and spearmanr produces a Result object, with attributes "statistic" and "pvalue"
         pearson = pearsonr(output_np,label_np).statistic 
         spearman = spearmanr(output_np,label_np).statistic 
 
         #lingress gives an r value, which should be squared to give the r squared value
-        r_squared = (linregress(output_np,label_np).rvalue)^2
-
+        r_squared = (linregress(output_np,label_np).rvalue)**2
 
         return {"spearman":spearman,"pearson":pearson,"r_squared":r_squared}
         

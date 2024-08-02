@@ -2,11 +2,12 @@ import torch
 from torch.utils.data import Dataset
 from src.lmdb_loader import LMDBLoader
 
-class ProteinVariantDataset(Dataset):
+class ProteinVariant_Dataset(Dataset):
     def __init__(self, key_list, label_list, wt_emb_dict, cfg):
         self.key_list = key_list #list of mt keys
         self.label = label_list #list of labels(DMS score)
         self.wt_emb_dict= wt_emb_dict #pt saving the wt embedding
+        self.cfg = cfg
         lmdb_path = cfg.lmdb_path #lmdb path saving the mt embedding
         self.lmdb_loader=LMDBLoader(lmdb_path,self.key_list)
 
@@ -19,7 +20,7 @@ class ProteinVariantDataset(Dataset):
         data in a dictionary and the labels in a list
         '''
 
-        wt_id = self.key_list[index].split("_")[0] #mt are in the form of "wt-mtid", splitting with "-" to get wt
+        wt_id = self.key_list[index].split("-")[0] #mt are in the form of "wt-mtid", splitting with "-" to get wt
         wt_emb = self.wt_emb_dict[wt_id]
         mt_emb = self.lmdb_loader[index]
 
@@ -28,7 +29,7 @@ class ProteinVariantDataset(Dataset):
 
         return({"wt":{"embed":wt_emb_padded,"mask":wt_mask},
                  "mt":{"embed":mt_emb_padded,"mask":mt_mask}},
-                self.label
+                self.label[index]
               )
 
     def pad_tensor(self, tensor):
